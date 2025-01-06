@@ -34,8 +34,9 @@
         }
 
         const clipboardText = await navigator.clipboard.readText();
+        const phoneNumber = getNumbersOnly(clipboardText);
 
-        const isValidNumber = isNumber(clipboardText);
+        const isValidNumber = isNumber(phoneNumber);
 
         if (!isValidNumber) {
           // display the error message
@@ -44,7 +45,6 @@
           return
         }
 
-        const phoneNumber = sanitizeNumber(clipboardText);
         document.getElementById('paste').innerText = phoneNumber;
         document.getElementById('error').innerText = '';
       }
@@ -62,7 +62,7 @@
     }
 
     // remove all the space, comma, + or any signs, just make it a number
-    function sanitizeNumber(number) {
+    function getNumbersOnly(number) {
       return number.replace(/[^0-9]/g, '');
     }
 
