@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Goto Whatsapp</title>
+</head>
+<body>
+
+  <!-- paste button -->
+  <button onclick="paste()">Paste</button>
+
+  <!-- display the paste text here -->
+  <p 
+    id="paste" 
+    onclick="openWhatsapp()"
+    style="cursor: pointer; color: blue; text-decoration: underline;"
+  >
+  </p>
+
+  <!-- error text -->
+  <p id="error"></p>
+
+  <!-- create a paste function -->
+  <script>
+
+    // create a function that will validate the number before pasting
+    async function paste() {
+      try {
+        // Ensure the API is supported
+        if (!navigator.clipboard) {
+          alert("Clipboard API not supported in this browser.");
+          return;
+        }
+
+        const clipboardText = await navigator.clipboard.readText();
+
+        const isValidNumber = isNumber(clipboardText);
+
+        if (!isValidNumber) {
+          // display the error message
+          document.getElementById('error').innerText = 'Invalid number';
+          document.getElementById('paste').innerText = '';
+          return
+        }
+
+        const phoneNumber = sanitizeNumber(clipboardText);
+        document.getElementById('paste').innerText = phoneNumber;
+        document.getElementById('error').innerText = '';
+      }
+      catch (error) {
+        console.log(error);
+      }
+    }
+
+    function isNumber(value) {
+      if (isNaN(value)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    // remove all the space, comma, + or any signs, just make it a number
+    function sanitizeNumber(number) {
+      return number.replace(/[^0-9]/g, '');
+    }
+
+    // open whatsapp
+    function openWhatsapp() {
+      const phoneNumber = document.getElementById('paste').innerText;
+      const url = `https://wa.me/${phoneNumber}`;
+      window.open(url, '_blank');
+    }
+  </script>
+  
+</body>
+</html>
