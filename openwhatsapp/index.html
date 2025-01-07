@@ -1,21 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Goto Whatsapp</title>
+
+  <style>
+    /* Font */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    /* Set a global font for entire page */
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      padding: 20px;
+    }
+
+    /* paste button style */
+    button.paste {
+      padding: 10px 20px;
+      background-color: #25d366;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    /* button country */
+    button.country {
+      padding: 10px 20px;
+      background-color: #fff;
+      color: #7e7d7d;
+      border: solid 1px #cddff2;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 10px;
+      /* on click effect when user press */
+      transition: background-color 0.3s, transform 0.2s ease;
+      ;
+    }
+  </style>
 </head>
+
 <body>
 
   <!-- paste button -->
-  <button onclick="paste()">Paste</button>
+  <button class="paste" onclick="paste()">Paste</button>
+
+  <br><br>
+
+  <!-- Select a country list as a button, Only list malaysia and indonesia and default select Malaysia -->
+  <div id="country-buttons" style="display: none;">
+    <button class="country" onclick="addCountryCode('malaysia')">Malaysia</button>
+    <!-- <button class="country" onclick="addCountryCode('indonesia')">Indonesia</button> -->
+  </div>
 
   <!-- display the paste text here -->
-  <p 
-    id="paste" 
-    onclick="openWhatsapp()"
-    style="cursor: pointer; color: blue; text-decoration: underline;"
-  >
+  <p id="paste" onclick="openWhatsapp()" style="cursor: pointer; color: blue; text-decoration: underline;">
   </p>
 
   <!-- error text -->
@@ -34,19 +78,23 @@
         }
 
         const clipboardText = await navigator.clipboard.readText();
+
         const phoneNumber = getNumbersOnly(clipboardText);
 
         const isValidNumber = isNumber(phoneNumber);
 
+        const countryButtons = document.getElementById('country-buttons');
+
         if (!isValidNumber) {
-          // display the error message
           document.getElementById('error').innerText = 'Invalid number';
           document.getElementById('paste').innerText = '';
+          countryButtons.style.display = "none"; // Hide buttons 
           return
         }
-
+      
         document.getElementById('paste').innerText = phoneNumber;
         document.getElementById('error').innerText = '';
+        countryButtons.style.display = "block"; // Show buttons
       }
       catch (error) {
         console.log(error);
@@ -54,7 +102,8 @@
     }
 
     function isNumber(value) {
-      if (isNaN(value)) {
+      // check falsey values and it is a number
+      if (!value || isNaN(value)) {
         return false;
       }
 
@@ -72,7 +121,43 @@
       const url = `https://wa.me/${phoneNumber}`;
       window.open(url, '_blank');
     }
+
+    function addCountryCode(country) {
+      const phoneElement = document.getElementById('paste');
+      let phoneNumber = phoneElement.innerText.trim();
+
+      if (!phoneNumber) {
+        alert("Phone number is empty!");
+        return;
+      }
+
+      // Define country codes and their local prefixes using a map
+      const countryCodes = {
+        malaysia: { code: '60', localPrefix: /^0/ },
+        // indonesia: { code: '62', localPrefix: /^0/ },
+      };
+
+      const countryData = countryCodes[country.toLowerCase()];
+      if (!countryData) {
+        alert("Invalid country selected!");
+        return;
+      }
+
+      const { code, localPrefix } = countryData;
+
+      // Check if the number already has the country code
+      if (phoneNumber.startsWith(code)) {
+        return;
+      }
+
+      // Replace local prefix with the country code
+      phoneNumber = phoneNumber.replace(localPrefix, code);
+
+      phoneElement.innerText = phoneNumber;
+    }
+
   </script>
-  
+
 </body>
+
 </html>
