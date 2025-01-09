@@ -19,6 +19,35 @@
       padding: 20px;
     }
 
+    div.main-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+    }
+
+    div.main-container div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    p#phoneNumberLinkToWhatsapp {
+      cursor: pointer;
+      color: blue;
+      text-decoration: underline;
+      font-size: 30px;
+      font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+      text-align: center;
+    }
+
+    p#error {
+      color: red;
+      font-size: 20px;
+      font-family: 'Courier New', Courier, monospace;
+      text-align: center;
+    }
+
     /* paste button style */
     button.paste {
       padding: 10px 20px;
@@ -27,6 +56,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
     }
 
     /* button country */
@@ -37,8 +67,6 @@
       border: solid 1px #cddff2;
       border-radius: 5px;
       cursor: pointer;
-      margin-right: 10px;
-      /* on click effect when user press */
       transition: background-color 0.3s, transform 0.2s ease;
       ;
     }
@@ -47,26 +75,24 @@
 
 <body>
 
-  <!-- paste button -->
-  <button class="paste" onclick="paste()">Paste</button>
+  <div class="main-container">
+    <div>
+      <!-- paste button -->
+      <button class="paste" onclick="paste()">Paste</button>
 
-  <br><br>
+      <br>
 
-  <!-- Select a country list as a button, Only list malaysia and indonesia and default select Malaysia -->
-  <div id="country-buttons" style="display: none;">
-    <button class="country" onclick="addCountryCode('malaysia')">Malaysia</button>
-    <!-- <button class="country" onclick="addCountryCode('indonesia')">Indonesia</button> -->
+      <p id="phoneNumberLinkToWhatsapp" onclick="openWhatsapp()">
+      </p>
+
+      <p id="error"></p>
+    </div>
   </div>
-
-  <!-- display the paste text here -->
-  <p id="paste" onclick="openWhatsapp()" style="cursor: pointer; color: blue; text-decoration: underline;">
-  </p>
-
-  <!-- error text -->
-  <p id="error"></p>
 
   <!-- create a paste function -->
   <script>
+
+    const phoneNumberLinkToWhatsapp = document.getElementById('phoneNumberLinkToWhatsapp');
 
     // create a function that will validate the number before pasting
     async function paste() {
@@ -79,83 +105,76 @@
 
         const clipboardText = await navigator.clipboard.readText();
 
-        const phoneNumber = getNumbersOnly(clipboardText);
+        // Validate the phone number
+        const { isValid, formattedNumber, originalNumber } = validateMalaysianPhone(clipboardText);
 
-        const isValidNumber = isNumber(phoneNumber);
-
-        const countryButtons = document.getElementById('country-buttons');
-
-        if (!isValidNumber) {
-          document.getElementById('error').innerText = 'Invalid number';
-          document.getElementById('paste').innerText = '';
-          countryButtons.style.display = "none"; // Hide buttons 
-          return
+        if (!isValid) {
+          document.getElementById('error').innerText = 'Invalid Malaysian hand phone number';
+          phoneNumberLinkToWhatsapp.innerText = '';
+          return;
         }
-      
-        document.getElementById('paste').innerText = phoneNumber;
+
+        phoneNumberLinkToWhatsapp.innerText = formattedNumber;
         document.getElementById('error').innerText = '';
-        countryButtons.style.display = "block"; // Show buttons
       }
       catch (error) {
         console.log(error);
       }
     }
 
-    function isNumber(value) {
-      // check falsey values and it is a number
-      if (!value || isNaN(value)) {
-        return false;
-      }
-
-      return true;
-    }
-
-    // remove all the space, comma, + or any signs, just make it a number
-    function getNumbersOnly(number) {
-      return number.replace(/[^0-9]/g, '');
-    }
-
     // open whatsapp
     function openWhatsapp() {
-      const phoneNumber = document.getElementById('paste').innerText;
+      const phoneNumber = phoneNumberLinkToWhatsapp.innerText;
+
       const url = `https://wa.me/${phoneNumber}`;
       window.open(url, '_blank');
     }
 
-    function addCountryCode(country) {
-      const phoneElement = document.getElementById('paste');
-      let phoneNumber = phoneElement.innerText.trim();
+    function validateMalaysianPhone(phone) {
+      let number = phone.replace(/\D/g, '');
 
-      if (!phoneNumber) {
-        alert("Phone number is empty!");
-        return;
+      // Helper function to create response object
+      const createResponse = (isValid, message) => ({
+        isValid,
+        formattedNumber: isValid ? number : null,
+        originalNumber: phone,
+      });
+
+      // Handle numbers starting with 0
+      if (number.startsWith('0')) {
+        // Validate length before prepending 6
+        const isStartingWith011 = number.startsWith('011');
+        const validLength = isStartingWith011 ? 11 : 10;
+
+        if (number.length !== validLength) {
+          return createResponse(
+            false,
+            `Numbers starting with ${isStartingWith011 ? '011' : '0'} must be ${validLength} digits long`
+          );
+        }
+
+        // Prepend 6 if validation passed
+        number = '6' + number;
       }
 
-      // Define country codes and their local prefixes using a map
-      const countryCodes = {
-        malaysia: { code: '60', localPrefix: /^0/ },
-        // indonesia: { code: '62', localPrefix: /^0/ },
-      };
-
-      const countryData = countryCodes[country.toLowerCase()];
-      if (!countryData) {
-        alert("Invalid country selected!");
-        return;
+      // Validate numbers already starting with 60
+      if (!number.startsWith('60')) {
+        return createResponse(false, 'Number must start with 60 or 0');
       }
 
-      const { code, localPrefix } = countryData;
+      // Final length validation
+      const isStartingWith6011 = number.startsWith('6011');
+      const requiredLength = isStartingWith6011 ? 12 : 11;
 
-      // Check if the number already has the country code
-      if (phoneNumber.startsWith(code)) {
-        return;
+      if (number.length !== requiredLength) {
+        return createResponse(
+          false,
+          `Numbers starting with ${isStartingWith6011 ? '6011' : '60'} must be ${requiredLength} digits long`
+        );
       }
 
-      // Replace local prefix with the country code
-      phoneNumber = phoneNumber.replace(localPrefix, code);
-
-      phoneElement.innerText = phoneNumber;
+      return createResponse(true, 'Valid Malaysian phone number');
     }
-
   </script>
 
 </body>

@@ -4,8 +4,8 @@
   "description": "An app that content all my daily tools",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6200ea",
+  "background_color": "#f6f6f6",
+  "theme_color": "#f8f8f8",
   "icons": [
     {
       "src": "assets/favicons/android-chrome-192x192.png",

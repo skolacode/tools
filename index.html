@@ -22,6 +22,14 @@
       box-sizing: border-box;
     }
 
+    /* align the item in the center but top align */
+    .main-container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+    }
+
     /* whatsapp button style */
     a.whatsapp {
       display: inline-block;
@@ -31,13 +39,15 @@
       text-decoration: none;
       border-radius: 5px;
       margin: 20px;
+      box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
     }
   </style>
 </head>
 <body>
 
-  <!-- hyperlink from openwhatsapp folder index.html file -->
-  <a class="whatsapp" href="openwhatsapp">Open Whatsapp</a>
-  
+  <div class="main-container">
+    <!-- hyperlink from openwhatsapp folder index.html file -->
+    <a class="whatsapp" href="openwhatsapp">Whatsapp Tool</a>
+  </div>
 </body>
 </html>
