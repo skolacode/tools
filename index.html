@@ -12,22 +12,16 @@
 
     body {
       font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f0f2f5; /* Light grey background */
+      background-color: #ffffff; /* Light grey background */
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      height: 100vh;
-      padding-top: 50px;
     }
 
     /* Container for the menu */
     .menu-card {
       background: #ffffff;
-      padding: 30px;
       border-radius: 20px; /* Rounded corners for the container */
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       width: 300px;
       text-align: center;
     }
@@ -42,6 +36,8 @@
       margin: 15px 0;
       font-weight: 500;
       transition: transform 0.2s;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+
     }
 
     a.btn:active { transform: scale(0.98); }
@@ -53,7 +49,6 @@
 <body>
 
   <div class="menu-card">
-    <h3 style="margin-top: 0; color: #333;">Dashboard</h3>
     <a class="btn whatsapp" href="openwhatsapp">Whatsapp Tool</a>
     <a class="btn islamic" href="islamic-info">Islamic Info</a>
   </div>
