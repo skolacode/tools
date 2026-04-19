@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islamic Dashboard</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #d35400; --bg: #f4f7f6; --card: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 450px; background: var(--card); padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .section { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: #7f8c8d; font-weight: 600; }
+        .value { font-size: 1.1rem; font-weight: 600; color: var(--primary); display: block; margin-top: 5px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .footer-status { font-size: 0.75rem; color: #7f8c8d; margin-top: 15px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="section">
+        <span class="label">Gregorian Date</span>
+        <span class="value" id="gregorian">--</span>
+    </div>
+
+    <div class="section">
+        <div class="grid">
+            <div>
+                <span class="label">Hijri (Offline)</span>
+                <span class="value" id="hijri-offline">--</span>
+            </div>
+            <div>
+                <span class="label">Hijri (Verified Online)</span>
+                <span class="value" id="hijri-online" style="color:var(--accent)">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" style="border:none; margin-bottom: 0;">
+        <span class="label">Prayer Times (Kuala Lumpur)</span>
+        <div class="grid" style="margin-top:10px;">
+            <div><span class="label">Fajr</span><span class="value" id="fajr">--</span></div>
+            <div><span class="label">Dhuhr</span><span class="value" id="dhuhr">--</span></div>
+            <div><span class="label">Asr</span><span class="value" id="asr">--</span></div>
+            <div><span class="label">Maghrib</span><span class="value" id="maghrib">--</span></div>
+            <div><span class="label">Isha</span><span class="value" id="isha">--</span></div>
+        </div>
+        <div id="last-updated" class="footer-status">Status: Initializing...</div>
+    </div>
+</div>
+
+<script>
+    const CACHE_KEY = 'islamic_dashboard_cache';
+    const CACHE_EXPIRY = 10 * 24 * 60 * 60 * 1000; 
+
+    async function init() {
+        const now = new Date();
+        document.getElementById('gregorian').innerText = now.toLocaleDateString('en-GB', { dateStyle: 'long' });
+        document.getElementById('hijri-offline').innerText = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', { dateStyle: 'long' }).format(now);
+
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+        
+        if (cached && (Date.now() - cached.timestamp < CACHE_EXPIRY)) {
+            render(cached.data, cached.timestamp);
+        } else {
+            fetchNewData();
+        }
+    }
+
+    async function fetchNewData() {
+        if (!navigator.onLine) {
+            document.getElementById('last-updated').innerText = "Status: Offline (No cached data)";
+            return;
+        }
+
+        try {
+            const dateStr = `${new Date().getDate()}-${new Date().getMonth() + 1}-${new Date().getFullYear()}`;
+            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Kuala%20Lumpur&country=Malaysia&method=11&date=${dateStr}`);
+            const json = await res.json();
+            
+            const data = { hijri: json.data.date.hijri, prayers: json.data.timings };
+            const timestamp = Date.now();
+
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp, data }));
+            render(data, timestamp);
+        } catch (e) {
+            document.getElementById('last-updated').innerText = "Status: Error fetching update";
+        }
+    }
+
+    function render(data, timestamp) {
+        document.getElementById('hijri-online').innerText = `${data.hijri.day} ${data.hijri.month.en} ${data.hijri.year}`;
+        document.getElementById('fajr').innerText = data.prayers.Fajr;
+        document.getElementById('dhuhr').innerText = data.prayers.Dhuhr;
+        document.getElementById('asr').innerText = data.prayers.Asr;
+        document.getElementById('maghrib').innerText = data.prayers.Maghrib;
+        document.getElementById('isha').innerText = data.prayers.Isha;
+        
+        const dateObj = new Date(timestamp);
+        document.getElementById('last-updated').innerText = `Last updated: ${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    }
+
+    init();
+</script>
+</body>
+</html>
