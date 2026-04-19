@@ -6,115 +6,115 @@
   <title>Islamic Dashboard</title>
   <style>
     :root { --primary: #2c3e50; --accent: #d35400; --bg: #f4f7f6; --card: #ffffff; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 450px; background: var(--card); padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-    .section { margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-    .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: #7f8c8d; font-weight: 600; }
+    body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 450px; background: var(--card); padding: 24px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .section { margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+    .label { font-size: 0.7rem; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; }
     .value { font-size: 1.1rem; font-weight: 600; color: var(--primary); display: block; margin-top: 5px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .footer-status { font-size: 0.75rem; color: #7f8c8d; margin-top: 15px; text-align: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    /* Improved Fasting Grid */
+    .fasting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .fasting-item { background: #fff5eb; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #ffe5d0; }
+    
+    .prayer-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .prayer-item { background: #f8f9fa; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; }
+    .prayer-label { font-size: 0.65rem; color: #7f8c8d; text-transform: uppercase; margin-bottom: 4px; }
+    .prayer-value { font-size: 0.95rem; font-weight: 700; color: var(--primary); }
+    .footer { font-size: 0.7rem; color: #999; margin-top: 15px; text-align: center; }
   </style>
 </head>
 <body>
 
 <div class="container">
     <div class="section">
-        <span class="label">Gregorian Date</span>
+        <span class="label">Date</span>
         <span class="value" id="gregorian">--</span>
+        <span class="value" id="hijri-local" style="color:var(--accent)">--</span>
     </div>
 
     <div class="section">
         <div class="grid">
-            <div>
-                <span class="label">Hijri (Calculated)</span>
-                <span class="value" id="hijri-offline">--</span>
+            <div><span class="label">Eid al-Fitr</span><span class="value" id="eid-fitr">--</span></div>
+            <div><span class="label">Eid al-Adha</span><span class="value" id="eid-adha">--</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <span class="label">Best Fasting Days</span>
+        <div class="fasting-grid">
+            <div class="fasting-item">
+                <span class="prayer-label">Arafah</span></br>
+                <span class="prayer-value" id="arafah">26 May 2026</span>
             </div>
-            <div>
-                <span class="label">Hijri (Verified)</span>
-                <span class="value" id="hijri-online" style="color:var(--accent)">--</span>
+            <div class="fasting-item">
+                <span class="prayer-label">Ashura</span></br>
+                <span class="prayer-value" id="ashura">26 June 2026</span>
             </div>
         </div>
     </div>
 
-    <div class="section" style="border:none; margin-bottom: 0;">
+    <div class="section" style="border:none">
         <span class="label">Prayer Times (Kuala Lumpur)</span>
-        <div class="grid" style="margin-top:10px;">
-            <div><span class="label">Fajr</span><span class="value" id="fajr">--</span></div>
-            <div><span class="label">Dhuhr</span><span class="value" id="dhuhr">--</span></div>
-            <div><span class="label">Asr</span><span class="value" id="asr">--</span></div>
-            <div><span class="label">Maghrib</span><span class="value" id="maghrib">--</span></div>
-            <div><span class="label">Isha</span><span class="value" id="isha">--</span></div>
+        <div class="prayer-container">
+            <div class="prayer-item"><span class="prayer-label">Fajr</span><span class="prayer-value" id="fajr">--</span></div>
+            <div class="prayer-item"><span class="prayer-label">Dhuhr</span><span class="prayer-value" id="dhuhr">--</span></div>
+            <div class="prayer-item"><span class="prayer-label">Asr</span><span class="prayer-value" id="asr">--</span></div>
+            <div class="prayer-item"><span class="prayer-label">Maghrib</span><span class="prayer-value" id="maghrib">--</span></div>
+            <div class="prayer-item"><span class="prayer-label">Isha</span><span class="prayer-value" id="isha">--</span></div>
         </div>
-        <div id="last-updated" class="footer-status">Status: Initializing...</div>
+        <div class="footer" id="last-updated" style="margin-top: 15px;">--</div>
     </div>
 </div>
 
 <script>
-    const CACHE_KEY = 'islamic_dashboard_cache';
-    const ANCHOR_KEY = 'hijri_anchor';
+    const STORAGE = { anchor: 'hijri_anchor', prayer: 'prayer_cache' };
 
-    // 1. Calculate offline date using the last known Anchor
-    function getOfflineHijri() {
-        const anchor = JSON.parse(localStorage.getItem(ANCHOR_KEY));
-        if (!anchor) return "N/A";
-
-        const anchorDate = new Date(anchor.date);
-        const today = new Date();
-        const diffDays = Math.floor((today - anchorDate) / (1000 * 60 * 60 * 24));
-        
-        // Simple offset: add days to last known Hijri day
-        // Note: Real world production might need a 29/30 day check
-        const newDay = parseInt(anchor.hijri.day) + diffDays;
-        return `${newDay} ${anchor.hijri.month.en} ${anchor.hijri.year}`;
-    }
-
-    async function init() {
+    function updateUI() {
         const now = new Date();
         document.getElementById('gregorian').innerText = now.toLocaleDateString('en-GB', { dateStyle: 'long' });
-        
-        // Load Calculated
-        document.getElementById('hijri-offline').innerText = getOfflineHijri();
 
-        // Load Cached Data
-        const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
-        if (cached) render(cached.data, cached.timestamp);
-        
-        // Always try to fetch if online to update our anchor
-        if (navigator.onLine) fetchNewData();
-    }
-
-    async function fetchNewData() {
-        try {
-            const dateStr = `${new Date().getDate()}-${new Date().getMonth() + 1}-${new Date().getFullYear()}`;
-            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Kuala%20Lumpur&country=Malaysia&method=11&date=${dateStr}`);
-            const json = await res.json();
+        // Offline Hijri Calculation
+        const anchor = JSON.parse(localStorage.getItem(STORAGE.anchor));
+        if (anchor) {
+            const diff = Math.floor((now - new Date(anchor.date)) / 86400000);
+            const hDay = parseInt(anchor.hijri.day) + diff;
+            document.getElementById('hijri-local').innerText = `${hDay} ${anchor.hijri.month.en} ${anchor.hijri.year} AH`;
             
-            const data = { hijri: json.data.date.hijri, prayers: json.data.timings };
-            const timestamp = Date.now();
+            // Fixed Eid Dates for 1447 AH
+            document.getElementById('eid-fitr').innerText = "20 March 2026";
+            document.getElementById('eid-adha').innerText = "27 May 2026";
+        }
 
-            // Save to Cache & Anchor
-            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp, data }));
-            localStorage.setItem(ANCHOR_KEY, JSON.stringify({ date: new Date(), hijri: data.hijri }));
-            
-            render(data, timestamp);
-        } catch (e) {
-            document.getElementById('last-updated').innerText = "Status: Using Offline Cache";
+        // Offline Prayers
+        const pCache = JSON.parse(localStorage.getItem(STORAGE.prayer));
+        if (pCache) {
+            Object.keys(pCache.data).forEach(k => { if(document.getElementById(k.toLowerCase())) document.getElementById(k.toLowerCase()).innerText = pCache.data[k]});
+            document.getElementById('last-updated').innerText = `Prayer times synced: ${new Date(pCache.timestamp).toLocaleDateString()}`;
         }
     }
 
-    function render(data, timestamp) {
-        document.getElementById('hijri-online').innerText = `${data.hijri.day} ${data.hijri.month.en} ${data.hijri.year}`;
-        document.getElementById('fajr').innerText = data.prayers.Fajr;
-        document.getElementById('dhuhr').innerText = data.prayers.Dhuhr;
-        document.getElementById('asr').innerText = data.prayers.Asr;
-        document.getElementById('maghrib').innerText = data.prayers.Maghrib;
-        document.getElementById('isha').innerText = data.prayers.Isha;
-        
-        const dateObj = new Date(timestamp);
-        document.getElementById('last-updated').innerText = `Last sync: ${dateObj.toLocaleDateString()} ${dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+    async function sync() {
+        if (!navigator.onLine) return;
+        const now = new Date();
+        const anchor = JSON.parse(localStorage.getItem(STORAGE.anchor));
+        const pCache = JSON.parse(localStorage.getItem(STORAGE.prayer));
+
+        // Sync Hijri Anchor only on 28th of the month or if missing
+        const is28thOrLater = !anchor || (parseInt(anchor.hijri.day) >= 28);
+        const is10DaysOld = !pCache || (Date.now() - pCache.timestamp > 864000000);
+
+        if (is28thOrLater || is10DaysOld) {
+            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Kuala%20Lumpur&country=Malaysia&method=11`);
+            const json = await res.json();
+            if (is28thOrLater) localStorage.setItem(STORAGE.anchor, JSON.stringify({ date: now, hijri: json.data.date.hijri }));
+            if (is10DaysOld) localStorage.setItem(STORAGE.prayer, JSON.stringify({ timestamp: Date.now(), data: json.data.timings }));
+            updateUI();
+        }
     }
 
-    init();
+    updateUI();
+    sync();
 </script>
 </body>
 </html>
