@@ -3,69 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scanner Pro</title>
+    <title>Modern QR Scanner</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-        #reader { width: 100%; border: 1px solid #ccc; }
-        .list-container { margin-top: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f9f9f9; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+        .result-box { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { display: block; width: 100%; padding: 10px; margin-top: 10px; border: none; border-radius: 5px; cursor: pointer; text-align: center; text-decoration: none; color: white; font-weight: bold; }
+        .btn-open { background: #28a745; }
+        .btn-gallery { background: #007bff; }
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
         ul { list-style: none; padding: 0; }
-        li { background: #f4f4f4; padding: 10px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; }
+        li { background: white; padding: 10px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .full-url { word-break: break-all; font-size: 0.9rem; margin-right: 10px; }
     </style>
 </head>
 <body>
 
     <h2>QR Scanner</h2>
     <div id="reader"></div>
+    
+    <input type="file" id="qr-input-file" accept="image/*" style="display:none">
+    <button class="btn btn-gallery" onclick="document.getElementById('qr-input-file').click()">Select from Gallery</button>
 
-    <div class="list-container">
-        <h3>Last 10 Scans</h3>
-        <ul id="historyList"></ul>
+    <div id="resultArea" class="result-box" style="display:none;">
+        <p id="scannedText" class="full-url"></p>
+        <a id="openLink" class="btn btn-open" href="#" target="_blank">Open URL</a>
     </div>
 
-    <div class="list-container">
-        <h3>Favorites (Max 20)</h3>
-        <ul id="favList"></ul>
-    </div>
+    <h3>Last 10 Scans</h3>
+    <ul id="historyList"></ul>
+
+    <h3>Favorites</h3>
+    <ul id="favList"></ul>
 
     <script>
-        const historyList = document.getElementById('historyList');
-        const favList = document.getElementById('favList');
+        const html5QrCode = new Html5Qrcode("reader");
+        const fileInput = document.getElementById('qr-input-file');
 
-        function updateUI() {
-            const history = JSON.parse(localStorage.getItem('qr_history') || '[]');
-            const favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
-            
-            historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
-            favList.innerHTML = favs.map((f, i) => `<li>${f.nickname}: ${f.url}</li>`).join('');
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => handleScan(text));
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length == 0) return;
+            html5QrCode.scanFile(e.target.files[0], true)
+                .then(decodedText => handleScan(decodedText))
+                .catch(err => alert("No QR found."));
+        });
+
+        function handleScan(text) {
+            document.getElementById('resultArea').style.display = 'block';
+            document.getElementById('scannedText').innerText = text;
+            document.getElementById('openLink').href = text;
+
+            let hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
+            if (hist[0] !== text) {
+                hist.unshift(text);
+                localStorage.setItem('qr_history', JSON.stringify(hist.slice(0, 10)));
+                updateLists();
+            }
         }
 
-        function onScanSuccess(decodedText) {
-            // Add to History
-            let history = JSON.parse(localStorage.getItem('qr_history') || '[]');
-            if (history[0] !== decodedText) {
-                history.unshift(decodedText);
-                localStorage.setItem('qr_history', JSON.stringify(history.slice(0, 10)));
-            }
-
-            // Ask for Favorite
-            if (confirm("Scan successful! Add to favorites?")) {
+        function addToFav(url) {
+            let nick = prompt("Enter a nickname:");
+            if (nick) {
                 let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
                 if (favs.length < 20) {
-                    let nick = prompt("Enter nickname:");
-                    favs.push({ url: decodedText, nickname: nick });
+                    favs.push({ url, nickname: nick });
                     localStorage.setItem('qr_favs', JSON.stringify(favs));
-                } else {
-                    alert("Favorites full!");
-                }
+                    updateLists();
+                } else alert("Max 20 favorites!");
             }
-            updateUI();
         }
 
-        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-        html5QrcodeScanner.render(onScanSuccess);
+        function removeFromFav(index) {
+            let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+            favs.splice(index, 1);
+            localStorage.setItem('qr_favs', JSON.stringify(favs));
+            updateLists();
+        }
 
-        updateUI();
+        function updateLists() {
+            const hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
+            const favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+            
+            document.getElementById('historyList').innerHTML = hist.map(url => `
+                <li><span class="full-url">${url}</span> 
+                    <button class="action-btn" onclick="addToFav('${url}')">⭐</button>
+                </li>`).join('');
+            
+            document.getElementById('favList').innerHTML = favs.map((f, i) => `
+                <li>
+                    <div><strong>${f.nickname}</strong><br><span class="full-url">${f.url}</span></div>
+                    <button class="action-btn" onclick="removeFromFav(${i})">🗑️</button>
+                </li>`).join('');
+        }
+
+        updateLists();
     </script>
 </body>
 </html>
