@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner Pro</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+        #reader { width: 100%; border: 1px solid #ccc; }
+        .list-container { margin-top: 20px; }
+        ul { list-style: none; padding: 0; }
+        li { background: #f4f4f4; padding: 10px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+    <h2>QR Scanner</h2>
+    <div id="reader"></div>
+
+    <div class="list-container">
+        <h3>Last 10 Scans</h3>
+        <ul id="historyList"></ul>
+    </div>
+
+    <div class="list-container">
+        <h3>Favorites (Max 20)</h3>
+        <ul id="favList"></ul>
+    </div>
+
+    <script>
+        const historyList = document.getElementById('historyList');
+        const favList = document.getElementById('favList');
+
+        function updateUI() {
+            const history = JSON.parse(localStorage.getItem('qr_history') || '[]');
+            const favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+            
+            historyList.innerHTML = history.map(item => `<li>${item}</li>`).join('');
+            favList.innerHTML = favs.map((f, i) => `<li>${f.nickname}: ${f.url}</li>`).join('');
+        }
+
+        function onScanSuccess(decodedText) {
+            // Add to History
+            let history = JSON.parse(localStorage.getItem('qr_history') || '[]');
+            if (history[0] !== decodedText) {
+                history.unshift(decodedText);
+                localStorage.setItem('qr_history', JSON.stringify(history.slice(0, 10)));
+            }
+
+            // Ask for Favorite
+            if (confirm("Scan successful! Add to favorites?")) {
+                let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+                if (favs.length < 20) {
+                    let nick = prompt("Enter nickname:");
+                    favs.push({ url: decodedText, nickname: nick });
+                    localStorage.setItem('qr_favs', JSON.stringify(favs));
+                } else {
+                    alert("Favorites full!");
+                }
+            }
+            updateUI();
+        }
+
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+
+        updateUI();
+    </script>
+</body>
+</html>
