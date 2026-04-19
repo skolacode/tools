@@ -13,9 +13,10 @@
         .btn-open { background: #28a745; }
         .btn-gallery { background: #007bff; }
         .action-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
+        .invalid { color: red; font-weight: bold; }
         ul { list-style: none; padding: 0; }
         li { background: white; padding: 10px; margin-bottom: 8px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .full-url { word-break: break-all; font-size: 0.9rem; margin-right: 10px; }
+        .full-url { word-break: break-all; font-size: 0.9rem; margin-right: 10px; text-decoration: none; color: #333; }
     </style>
 </head>
 <body>
@@ -27,7 +28,7 @@
     <button class="btn btn-gallery" onclick="document.getElementById('qr-input-file').click()">Select from Gallery</button>
 
     <div id="resultArea" class="result-box" style="display:none;">
-        <p id="scannedText" class="full-url"></p>
+        <p id="scannedText" style="word-break: break-all;"></p>
         <a id="openLink" class="btn btn-open" href="#" target="_blank">Open URL</a>
     </div>
 
@@ -50,6 +51,11 @@
                 .catch(err => alert("No QR found."));
         });
 
+        // Helper to validate URL
+        function isValidUrl(string) {
+            try { new URL(string); return true; } catch (_) { return false; }
+        }
+
         function handleScan(text) {
             document.getElementById('resultArea').style.display = 'block';
             document.getElementById('scannedText').innerText = text;
@@ -61,6 +67,33 @@
                 localStorage.setItem('qr_history', JSON.stringify(hist.slice(0, 10)));
                 updateLists();
             }
+        }
+
+        function updateLists() {
+            const hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
+            const favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+            
+            document.getElementById('historyList').innerHTML = hist.map(url => {
+                const valid = isValidUrl(url);
+                return `<li>
+                    <a href="${valid ? url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">
+                        ${url}
+                    </a>
+                    <button class="action-btn" onclick="addToFav('${url}')">⭐</button>
+                </li>`;
+            }).join('');
+            
+            document.getElementById('favList').innerHTML = favs.map((f, i) => {
+                const valid = isValidUrl(f.url);
+                return `<li>
+                    <div><strong>${f.nickname}</strong><br>
+                        <a href="${valid ? f.url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">
+                            ${f.url}
+                        </a>
+                    </div>
+                    <button class="action-btn" onclick="removeFromFav(${i})">🗑️</button>
+                </li>`;
+            }).join('');
         }
 
         function addToFav(url) {
@@ -80,22 +113,6 @@
             favs.splice(index, 1);
             localStorage.setItem('qr_favs', JSON.stringify(favs));
             updateLists();
-        }
-
-        function updateLists() {
-            const hist = JSON.parse(localStorage.getItem('qr_history') || '[]');
-            const favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
-            
-            document.getElementById('historyList').innerHTML = hist.map(url => `
-                <li><span class="full-url">${url}</span> 
-                    <button class="action-btn" onclick="addToFav('${url}')">⭐</button>
-                </li>`).join('');
-            
-            document.getElementById('favList').innerHTML = favs.map((f, i) => `
-                <li>
-                    <div><strong>${f.nickname}</strong><br><span class="full-url">${f.url}</span></div>
-                    <button class="action-btn" onclick="removeFromFav(${i})">🗑️</button>
-                </li>`).join('');
         }
 
         updateLists();
