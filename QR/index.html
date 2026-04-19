@@ -6,42 +6,45 @@
     <title>QR Scanner Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        /* Global Reset for UI Stability */
         * { box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f4f7f6; }
         
-        /* Fixed Camera Box */
-        #reader { width: 100%; height: 350px; border-radius: 12px; overflow: hidden; background: #eee; border: 3px solid #333; }
+        /* Wrapper ensures the scan box stays static */
+        #scanner-wrapper { width: 100%; height: 350px; position: relative; border: 3px solid #333; border-radius: 12px; overflow: hidden; background: #eee; }
+        #reader, #scan-again { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
         
-        /* Result Box: Bordered and contained */
-        .result-box { 
-            background: white; padding: 20px; border-radius: 12px; margin: 20px 0; 
-            border: 4px solid #28a745; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: none; width: 100%;
-        }
+        #scan-again { display: none; flex-direction: column; align-items: center; justify-content: center; background: #fff; z-index: 10; text-align: center; }
         
+        .result-box { background: white; padding: 20px; border-radius: 12px; margin: 20px 0; border: 4px solid #28a745; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .btn { display: block; width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; cursor: pointer; text-align: center; text-decoration: none; color: white; font-weight: bold; font-size: 1rem; }
         .btn-open { background: #28a745; }
         .btn-gallery { background: #007bff; margin-top: 15px; }
+        .btn-open-camera { background: #17a2b8; width: 200px; }
         
-        .action-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; padding: 5px; flex-shrink: 0; }
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; padding: 5px; }
         .invalid { color: red; font-weight: bold; }
         
         ul { list-style: none; padding: 0; width: 100%; }
-        li { background: white; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        li { background: white; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .full-url { word-break: break-all; font-size: 0.9rem; text-decoration: none; color: #333; margin-right: 10px; }
     </style>
 </head>
 <body>
 
     <h2>QR Scanner</h2>
-    <div id="reader"></div>
+    <div id="scanner-wrapper">
+        <div id="reader"></div>
+        <div id="scan-again">
+            <p><strong>Scan Successful!</strong></p>
+            <button class="btn btn-open-camera" onclick="startCamera()">Scan Again</button>
+        </div>
+    </div>
+
     <input type="file" id="qr-input-file" accept="image/*" style="display:none">
     <button class="btn btn-gallery" onclick="document.getElementById('qr-input-file').click()">Select from Gallery</button>
 
     <div id="resultArea" class="result-box">
-        <h4 style="margin: 0 0 10px 0; color: #28a745;">✓ Scan Successful!</h4>
-        <p id="scannedText" style="word-break: break-all; margin: 0 0 15px 0;"></p>
+        <p id="scannedText" style="word-break: break-all; margin: 0 0 15px 0; font-weight: bold;"></p>
         <a id="openLink" class="btn btn-open" href="#" target="_blank">Open URL</a>
     </div>
 
@@ -53,18 +56,23 @@
 
     <script>
         const html5QrCode = new Html5Qrcode("reader");
+        const scanAgainDiv = document.getElementById('scan-again');
+        const readerDiv = document.getElementById('reader');
         const resultArea = document.getElementById('resultArea');
 
         function startCamera() {
+            scanAgainDiv.style.display = 'none';
+            readerDiv.style.display = 'block';
+            resultArea.style.display = 'none';
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => handleScan(text));
         }
 
-        function isValidUrl(string) {
-            try { new URL(string); return true; } catch (_) { return false; }
-        }
-
         async function handleScan(text) {
+            await html5QrCode.stop().catch(() => {});
+            readerDiv.style.display = 'none';
+            scanAgainDiv.style.display = 'flex';
             resultArea.style.display = 'block';
+            
             document.getElementById('scannedText').innerText = text;
             document.getElementById('openLink').href = text;
 
@@ -79,7 +87,7 @@
         document.getElementById('qr-input-file').addEventListener('change', async e => {
             if (e.target.files.length == 0) return;
             try {
-                await html5QrCode.stop();
+                await html5QrCode.stop().catch(() => {});
                 const decodedText = await html5QrCode.scanFile(e.target.files[0], true);
                 handleScan(decodedText);
             } catch (err) {
@@ -87,6 +95,8 @@
                 startCamera();
             }
         });
+
+        function isValidUrl(s) { try { new URL(s); return true; } catch(_) { return false; } }
 
         function addToFav(url) {
             let nick = prompt("Enter a nickname:");
@@ -101,8 +111,7 @@
         }
 
         function removeFromFav(index) {
-            // Confirmation dialog before deleting
-            if (confirm("Are you sure you want to remove this from favorites?")) {
+            if (confirm("Remove from favorites?")) {
                 let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
                 favs.splice(index, 1);
                 localStorage.setItem('qr_favs', JSON.stringify(favs));
@@ -116,20 +125,12 @@
             
             document.getElementById('historyList').innerHTML = hist.map(url => {
                 const valid = isValidUrl(url);
-                return `<li>
-                    <a href="${valid ? url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">${url}</a>
-                    <button class="action-btn" onclick="addToFav('${url}')">⭐</button>
-                </li>`;
+                return `<li><a href="${valid ? url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">${url}</a><button class="action-btn" onclick="addToFav('${url}')">⭐</button></li>`;
             }).join('');
             
             document.getElementById('favList').innerHTML = favs.map((f, i) => {
                 const valid = isValidUrl(f.url);
-                return `<li>
-                    <div><strong>${f.nickname}</strong><br>
-                        <a href="${valid ? f.url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">${f.url}</a>
-                    </div>
-                    <button class="action-btn" onclick="removeFromFav(${i})">🗑️</button>
-                </li>`;
+                return `<li><div><strong>${f.nickname}</strong><br><a href="${valid ? f.url : '#'}" class="full-url ${valid ? '' : 'invalid'}" target="_blank">${f.url}</a></div><button class="action-btn" onclick="removeFromFav(${i})">🗑️</button></li>`;
             }).join('');
         }
 
