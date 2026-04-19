@@ -101,10 +101,13 @@
         }
 
         function removeFromFav(index) {
-            let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
-            favs.splice(index, 1);
-            localStorage.setItem('qr_favs', JSON.stringify(favs));
-            updateLists();
+            // Confirmation dialog before deleting
+            if (confirm("Are you sure you want to remove this from favorites?")) {
+                let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
+                favs.splice(index, 1);
+                localStorage.setItem('qr_favs', JSON.stringify(favs));
+                updateLists();
+            }
         }
 
         function updateLists() {
