@@ -6,56 +6,42 @@
     <title>QR Scanner Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f9f9f9; }
-        #reader { width: 100%; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 2px solid #ddd; }
-        .btn-open { background: #28a745; }
-        .btn-gallery { background: #007bff; }
-        .action-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; padding: 5px; }
-        .invalid { color: red; font-weight: bold; }
-        ul { list-style: none; padding: 0; }
-        li { background: white; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .full-url { word-break: break-all; font-size: 0.9rem; text-decoration: none; color: #333; }
-        h3 { border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        /* Global Reset for UI Stability */
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 500px; margin: auto; padding: 20px; background: #f4f7f6; }
+        
+        /* Fixed Camera Box */
+        #reader { width: 100%; height: 350px; border-radius: 12px; overflow: hidden; background: #eee; border: 3px solid #333; }
+        
+        /* Result Box: Bordered and contained */
         .result-box { 
-            background: white; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin: 20px 0; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-            box-sizing: border-box; /* Crucial: ensures padding is included in width */
-            overflow: hidden;       /* Prevents content from spilling out */
+            background: white; padding: 20px; border-radius: 12px; margin: 20px 0; 
+            border: 4px solid #28a745; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: none; width: 100%;
         }
-        #scannedText { 
-            word-break: break-all; 
-            margin-top: 0; 
-            margin-bottom: 15px; /* Adds space between text and button */
-        }
-        .btn { 
-            display: block; 
-            width: 100%; 
-            padding: 12px; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            text-align: center; 
-            text-decoration: none; 
-            color: white; 
-            font-weight: bold; 
-            font-size: 1rem;
-            box-sizing: border-box; /* Crucial: ensures button width stays inside parent */
-        }
+        
+        .btn { display: block; width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; cursor: pointer; text-align: center; text-decoration: none; color: white; font-weight: bold; font-size: 1rem; }
+        .btn-open { background: #28a745; }
+        .btn-gallery { background: #007bff; margin-top: 15px; }
+        
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 1.4rem; padding: 5px; flex-shrink: 0; }
+        .invalid { color: red; font-weight: bold; }
+        
+        ul { list-style: none; padding: 0; width: 100%; }
+        li { background: white; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+        .full-url { word-break: break-all; font-size: 0.9rem; text-decoration: none; color: #333; margin-right: 10px; }
     </style>
 </head>
 <body>
 
     <h2>QR Scanner</h2>
     <div id="reader"></div>
-    
     <input type="file" id="qr-input-file" accept="image/*" style="display:none">
     <button class="btn btn-gallery" onclick="document.getElementById('qr-input-file').click()">Select from Gallery</button>
 
-    <div id="resultArea" class="result-box" style="display:none;">
-        <p id="scannedText" style="word-break: break-all; margin-top: 0;"></p>
+    <div id="resultArea" class="result-box">
+        <h4 style="margin: 0 0 10px 0; color: #28a745;">✓ Scan Successful!</h4>
+        <p id="scannedText" style="word-break: break-all; margin: 0 0 15px 0;"></p>
         <a id="openLink" class="btn btn-open" href="#" target="_blank">Open URL</a>
     </div>
 
@@ -67,20 +53,16 @@
 
     <script>
         const html5QrCode = new Html5Qrcode("reader");
-        const fileInput = document.getElementById('qr-input-file');
         const resultArea = document.getElementById('resultArea');
 
-        // Start Camera
         function startCamera() {
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => handleScan(text));
         }
 
-        // Validate URL
         function isValidUrl(string) {
             try { new URL(string); return true; } catch (_) { return false; }
         }
 
-        // Handle Scan (Camera or File)
         async function handleScan(text) {
             resultArea.style.display = 'block';
             document.getElementById('scannedText').innerText = text;
@@ -94,21 +76,20 @@
             }
         }
 
-        // Gallery Input Handler
-        fileInput.addEventListener('change', async e => {
+        document.getElementById('qr-input-file').addEventListener('change', async e => {
             if (e.target.files.length == 0) return;
             try {
-                await html5QrCode.stop(); // Stop camera before scanning file
+                await html5QrCode.stop();
                 const decodedText = await html5QrCode.scanFile(e.target.files[0], true);
                 handleScan(decodedText);
             } catch (err) {
-                alert("No QR code found in image.");
-                startCamera(); // Restart camera
+                alert("No QR code found.");
+                startCamera();
             }
         });
 
         function addToFav(url) {
-            let nick = prompt("Enter a nickname for this link:");
+            let nick = prompt("Enter a nickname:");
             if (nick) {
                 let favs = JSON.parse(localStorage.getItem('qr_favs') || '[]');
                 if (favs.length < 20) {
