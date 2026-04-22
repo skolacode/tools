@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CVE Dashboard</title>
+
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background: #f8fafc;
+    color: #1e293b;
+    margin: 0;
+    padding: 30px;
+  }
+
+  h1 {
+    margin-bottom: 20px;
+  }
+
+  .grid {
+    display: grid;
+    gap: 16px;
+  }
+
+  .card {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    transition: 0.2s;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+  }
+
+  .cve-id {
+    font-size: 18px;
+    font-weight: bold;
+    color: #dc2626;
+  }
+
+  .meta {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+
+  .HIGH {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .MEDIUM {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .LOW {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .desc {
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  .toggle {
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  .details {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin-top: 10px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .details.open {
+    max-height: 500px;
+  }
+
+  .ref {
+    font-size: 12px;
+    margin-top: 5px;
+    word-break: break-all;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>📊 CVE Dashboard</h1>
+
+<p>Last updated: <span id="last-updated"></span></p>
+
+<div id="cve-container" class="grid"></div>
+
+<script>
+const API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0?resultsPerPage=10&pubStartDate=2026-04-21T00:00:00.000&pubEndDate=2026-04-22T00:00:00.000&cvssV3Severity=HIGH";
+
+const CACHE_KEY = "cve_cache";
+const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleString();
+}
+
+function toggleDetails(id) {
+  document.getElementById(id).classList.toggle("open");
+}
+
+function saveCache(data) {
+  localStorage.setItem(CACHE_KEY, JSON.stringify({
+    timestamp: Date.now(),
+    data: data
+  }));
+}
+
+function getCache() {
+  const cache = localStorage.getItem(CACHE_KEY);
+  if (!cache) return null;
+
+  const parsed = JSON.parse(cache);
+
+  if (Date.now() - parsed.timestamp > CACHE_DURATION) {
+    return null; // expired
+  }
+
+  return parsed.data;
+}
+
+function render(data) {
+  const container = document.getElementById("cve-container");
+  container.innerHTML = "";
+
+  data.vulnerabilities.forEach((item, index) => {
+    const cve = item.cve;
+
+    const id = cve.id;
+    const desc = cve.descriptions?.[0]?.value || "";
+
+    const published = formatDate(cve.published);
+    const modified = formatDate(cve.lastModified);
+
+    const cvss = cve.metrics?.cvssMetricV31?.[0]?.cvssData;
+    const severity = cvss?.baseSeverity || "N/A";
+    const score = cvss?.baseScore || "N/A";
+
+    const refs = cve.references?.map(r =>
+      `<div class="ref"><a href="${r.url}" target="_blank">${r.url}</a></div>`
+    ).join("") || "N/A";
+
+    const detailId = "d-" + index;
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="cve-id">${id}</div>
+      <div class="meta">Published: ${published}</div>
+      <div class="meta">Updated: ${modified}</div>
+
+      <div class="badge ${severity}">${severity} (${score})</div>
+
+      <div class="desc">${desc}</div>
+
+      <button class="toggle" onclick="toggleDetails('${detailId}')">
+        View More
+      </button>
+
+      <div id="${detailId}" class="details">
+        <p><strong>Vector:</strong> ${cvss?.vectorString || "N/A"}</p>
+        <p><strong>Status:</strong> ${cve.vulnStatus}</p>
+        <p><strong>References:</strong></p>
+        ${refs}
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+async function fetchCVEs() {
+  const container = document.getElementById("cve-container");
+  container.innerHTML = "Loading...";
+
+  // 1. Try cache first
+  const cached = getCache();
+  if (cached) {
+    console.log("Using cached data");
+    render(cached);
+    return;
+  }
+
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    saveCache(data); // save cache
+    render(data);
+
+  } catch (err) {
+    container.innerHTML = "Failed to load CVEs.";
+    console.error(err);
+  }
+}
+
+// Auto load on page open
+fetchCVEs();
+
+// get the timestamp from the local storage and display it
+const cache = localStorage.getItem(CACHE_KEY);
+if (cache) {
+  const parsed = JSON.parse(cache);
+  document.getElementById("last-updated").textContent = formatDate(parsed.timestamp);
+}
+
+</script>
+
+</body>
+</html>
