@@ -1,120 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Goto Whatsapp</title>
-
   <style>
-    /* Font */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
-    /* Set a global font for entire page */
     body {
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Inter', sans-serif;
       margin: 0;
+      margin-top: 40px;
       padding: 0;
-      box-sizing: border-box;
-      padding: 20px;
-    }
-
-    div.main-container {
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      height: 100vh;
-    }
-
-    div.main-container div {
-      display: flex;
-      flex-direction: column;
       align-items: center;
     }
 
-    p#phoneNumberLinkToWhatsapp {
-      cursor: pointer;
-      color: blue;
-      text-decoration: underline;
-      font-size: 30px;
-      font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 360px;
       text-align: center;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .input-wrapper {
+      display: flex;
+      gap: 8px;
+    }
+
+    .pastedInput {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .pastedInput:focus {
+      border-color: #1bfd6e;
+      border-width: 2px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.98); }
+
+    button.paste {
+      background-color: #f1f5f9;
+      color: #475569;
+      width: 100%;
+    }
+
+    button#openWhatsApp {
+      background-color: #25d366;
+      color: #fff;
     }
 
     p#error {
-      color: red;
-      font-size: 20px;
-      font-family: 'Courier New', Courier, monospace;
-      text-align: center;
+      color: #ef4444;
+      font-size: 14px;
+      margin: 8px 0 0 0;
+      min-height: 20px;
     }
 
-    /* paste button style */
-    button.paste {
-      padding: 10px 20px;
-      background-color: #25d366;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
-    }
-
-    /* button country */
-    button.country {
-      padding: 10px 20px;
-      background-color: #fff;
-      color: #7e7d7d;
-      border: solid 1px #cddff2;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s, transform 0.2s ease;
-      ;
+    .clearInput {
+      background-color: #e5e7eb;
+      color: #374151;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="main-container">
-    <div>
-      <!-- paste button -->
-      <button class="paste" onclick="paste()">Paste</button>
+  <div class="card">
+    <div class="main-container">
+      <button class="paste" onclick="paste()">📋 Paste Number</button>
 
-      <br>
-
-      <p id="phoneNumberLinkToWhatsapp" onclick="openWhatsapp()">
-      </p>
-
+      <div class="input-wrapper">
+        <input type="text" name="pastedInput" id="pastedInput" class="pastedInput" placeholder="Enter number...">
+        <button id="openWhatsApp" onclick="openWhatsapp(pastedInput.value)">Open</button>
+        <!-- add a clear button -->
+        <button onclick="clearInput()" class="clearInput">Clear</button>
+      </div>
+      
       <p id="error"></p>
     </div>
   </div>
 
-  <!-- create a paste function -->
   <script>
+    const pastedInput = document.getElementById('pastedInput')
 
-    const phoneNumberLinkToWhatsapp = document.getElementById('phoneNumberLinkToWhatsapp');
+    function clearInput() {
+      pastedInput.value = '';
+      document.getElementById('error').innerText = '';
+    }
 
-    // create a function that will validate the number before pasting
     async function paste() {
       try {
-        // Ensure the API is supported
         if (!navigator.clipboard) {
           alert("Clipboard API not supported in this browser.");
           return;
         }
 
         const clipboardText = await navigator.clipboard.readText();
+        
+        pastedInput.value = clipboardText
 
-        // Validate the phone number
         const { isValid, formattedNumber, originalNumber } = validateMalaysianPhone(clipboardText);
 
         if (!isValid) {
           document.getElementById('error').innerText = 'Invalid Malaysian hand phone number';
-          phoneNumberLinkToWhatsapp.innerText = '';
           return;
         }
 
-        phoneNumberLinkToWhatsapp.innerText = formattedNumber;
         document.getElementById('error').innerText = '';
       }
       catch (error) {
@@ -122,10 +136,7 @@
       }
     }
 
-    // open whatsapp
-    function openWhatsapp() {
-      const phoneNumber = phoneNumberLinkToWhatsapp.innerText;
-
+    function openWhatsapp(phoneNumber) {
       const url = `https://wa.me/${phoneNumber}`;
       window.open(url, '_blank');
     }
@@ -133,16 +144,13 @@
     function validateMalaysianPhone(phone) {
       let number = phone.replace(/\D/g, '');
 
-      // Helper function to create response object
       const createResponse = (isValid, message) => ({
         isValid,
         formattedNumber: isValid ? number : null,
         originalNumber: phone,
       });
 
-      // Handle numbers starting with 0
       if (number.startsWith('0')) {
-        // Validate length before prepending 6
         const isStartingWith011 = number.startsWith('011');
         const validLength = isStartingWith011 ? 11 : 10;
 
@@ -152,17 +160,13 @@
             `Numbers starting with ${isStartingWith011 ? '011' : '0'} must be ${validLength} digits long`
           );
         }
-
-        // Prepend 6 if validation passed
         number = '6' + number;
       }
 
-      // Validate numbers already starting with 60
       if (!number.startsWith('60')) {
         return createResponse(false, 'Number must start with 60 or 0');
       }
 
-      // Final length validation
       const isStartingWith6011 = number.startsWith('6011');
       const requiredLength = isStartingWith6011 ? 12 : 11;
 
@@ -178,5 +182,4 @@
   </script>
 
 </body>
-
 </html>
