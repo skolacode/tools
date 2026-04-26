@@ -11,15 +11,11 @@
       font-family: 'Inter', sans-serif;
       margin: 0;
       margin-top: 40px;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      padding: 10px;
     }
 
     .card {
       background: #ffffff;
-      width: 100%;
       max-width: 360px;
       text-align: center;
     }
@@ -94,10 +90,9 @@
 
       <div class="input-wrapper">
         <input type="text" name="pastedInput" id="pastedInput" class="pastedInput" placeholder="Enter number...">
-        <button id="openWhatsApp" onclick="openWhatsapp(pastedInput.value)">Open</button>
-        <!-- add a clear button -->
-        <button onclick="clearInput()" class="clearInput">Clear</button>
       </div>
+      <button onclick="clearInput()" class="clearInput">Clear</button>
+      <button id="openWhatsApp" onclick="openWhatsapp(pastedInput.value)">Open WhatsApp</button>
       
       <p id="error"></p>
     </div>
